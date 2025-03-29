@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  isOnline  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile           Profile?
+  sessionsAsClient  Session[]          @relation("ClientSessions")
+  sessionsAsHost    Session[]          @relation("HostSessions")
+  reviewsWritten    Review[]           @relation("WrittenReviews")
+  reviewsReceived   Review[]           @relation("ReceivedReviews")
+  payments          Payment[]
+  availabilitySlots AvailabilitySlot[]
+}
+
+model Profile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id])
+  displayName String
+  bio         String?
+  avatarUrl   String?
+  hourlyRate  Float
+  languages   String[]
+  gender      String?
+  location    String?
+  rating      Float    @default(0)
+
+  games UserGame[]
+}
+
+model Game {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  imageUrl String?
+
+  users    UserGame[]
+  sessions Session[]
+}
+
+model UserGame {
+  id     Int @id @default(autoincrement())
+  userId Int
+  gameId Int
+
+  user Profile @relation(fields: [userId], references: [userId])
+  game Game    @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+}
+
+model AvailabilitySlot {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  dayOfWeek Int // 0 = Sunday, 1 = Monday, etc.
+  startTime String // "14:00"
+  endTime   String // "18:00"
+  timezone  String // e.g. "UTC", "America/New_York"
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  hostId    Int
+  gameId    Int
+  startTime DateTime
+  endTime   DateTime
+  status    String // pending, confirmed, completed, cancelled
+
+  voiceCall    Boolean @default(false)
+  videoCall    Boolean @default(false)
+  callDuration Int? // in minutes
+  chatLog      String? // JSON or plain text
+  recordingUrl String? // video/voice recording URL
+
+  client  User     @relation("ClientSessions", fields: [clientId], references: [id])
+  host    User     @relation("HostSessions", fields: [hostId], references: [id])
+  game    Game     @relation(fields: [gameId], references: [id])
+  payment Payment?
+  review  Review?
+}
+
+model Payment {
+  id        Int @id @default(autoincrement())
+  sessionId Int @unique
+  userId    Int // who paid
+
+  amount   Float
+  currency String  @default("USD")
+  status   String // paid, refunded, failed
+  stripeId String?
+
+  user    User    @relation(fields: [userId], references: [id])
+  session Session @relation(fields: [sessionId], references: [id])
+}
+
+model Review {
+  id        Int @id @default(autoincrement())
+  sessionId Int @unique
+  authorId  Int // user who wrote the review
+  targetId  Int // user being reviewed
+
+  rating  Int     @default(5)
+  comment String?
+
+  session Session @relation(fields: [sessionId], references: [id])
+  author  User    @relation("WrittenReviews", fields: [authorId], references: [id])
+  target  User    @relation("ReceivedReviews", fields: [targetId], references: [id])
+}
