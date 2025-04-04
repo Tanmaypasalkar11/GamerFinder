@@ -16,6 +16,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "express-rate-limit": "^7.5.0",
+    "framer-motion": "^12.6.3",
     "next": "15.2.4",
     "next-auth": "^4.24.11",
     "react": "^19.0.0",

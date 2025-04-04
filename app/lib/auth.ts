@@ -10,15 +10,22 @@ export const authOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
     }),
   ],
   callbacks: {
-    session: ({ session, token }: { session: any; token: any }) => {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+    async session({ session, user }: any) {
+      if (session.user) {
+        session.user.id = user.id;
       }
       return session;
-    },
+    }
   },
 };
 
