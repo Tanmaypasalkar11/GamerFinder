@@ -118,7 +118,7 @@ export default function Layout() {
               {session ? (
                 <div className="flex items-center gap-4">
                   <span className="text-gray-700 font-medium">
-                    Hi, {session.user?.name?.split(" ")[0]}
+                    Hi, {session.user?.name?.split(" ")}
                   </span>
                   <button
                     onClick={() => signOut()}
