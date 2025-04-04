@@ -8,20 +8,55 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  isOnline  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                          Int       @id @default(autoincrement())
+  email                       String    @unique
+  name                        String?
+  password                    String?
+  image                       String?
+  emailVerified               DateTime?
+  emailVerifiedAt             DateTime?
+  emailVerifiedToken          String?
+  emailVerifiedTokenExpiresAt DateTime?
+  isOnline                    Boolean   @default(false)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   profile           Profile?
-  sessionsAsClient  Session[]          @relation("ClientSessions")
-  sessionsAsHost    Session[]          @relation("HostSessions")
+  accounts          Account[]
+  sessions          Session[]
   reviewsWritten    Review[]           @relation("WrittenReviews")
   reviewsReceived   Review[]           @relation("ReceivedReviews")
   payments          Payment[]
   availabilitySlots AvailabilitySlot[]
+}
+
+model Account {
+  id                       String  @id @default(uuid())
+  userId                   Int
+  type                     String
+  provider                 String
+  providerAccountId        String  @unique
+  refresh_token            String?
+  access_token             String?
+  refresh_token_expires_in Int? // ✅ Add this line
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Profile {
@@ -45,8 +80,7 @@ model Game {
   name     String  @unique
   imageUrl String?
 
-  users    UserGame[]
-  sessions Session[]
+  users UserGame[]
 }
 
 model UserGame {
@@ -71,52 +105,25 @@ model AvailabilitySlot {
   timezone  String // e.g. "UTC", "America/New_York"
 }
 
-model Session {
-  id        Int      @id @default(autoincrement())
-  clientId  Int
-  hostId    Int
-  gameId    Int
-  startTime DateTime
-  endTime   DateTime
-  status    String // pending, confirmed, completed, cancelled
-
-  voiceCall    Boolean @default(false)
-  videoCall    Boolean @default(false)
-  callDuration Int? // in minutes
-  chatLog      String? // JSON or plain text
-  recordingUrl String? // video/voice recording URL
-
-  client  User     @relation("ClientSessions", fields: [clientId], references: [id])
-  host    User     @relation("HostSessions", fields: [hostId], references: [id])
-  game    Game     @relation(fields: [gameId], references: [id])
-  payment Payment?
-  review  Review?
-}
-
 model Payment {
-  id        Int @id @default(autoincrement())
-  sessionId Int @unique
-  userId    Int // who paid
-
+  id       Int     @id @default(autoincrement())
+  userId   Int // who paid
   amount   Float
   currency String  @default("USD")
   status   String // paid, refunded, failed
   stripeId String?
 
-  user    User    @relation(fields: [userId], references: [id])
-  session Session @relation(fields: [sessionId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Review {
-  id        Int @id @default(autoincrement())
-  sessionId Int @unique
-  authorId  Int // user who wrote the review
-  targetId  Int // user being reviewed
+  id       Int @id @default(autoincrement())
+  authorId Int // user who wrote the review
+  targetId Int // user being reviewed
 
   rating  Int     @default(5)
   comment String?
 
-  session Session @relation(fields: [sessionId], references: [id])
-  author  User    @relation("WrittenReviews", fields: [authorId], references: [id])
-  target  User    @relation("ReceivedReviews", fields: [targetId], references: [id])
+  author User @relation("WrittenReviews", fields: [authorId], references: [id])
+  target User @relation("ReceivedReviews", fields: [targetId], references: [id])
 }
