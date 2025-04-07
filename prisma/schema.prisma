@@ -13,6 +13,10 @@ model User {
   name                        String?
   password                    String?
   image                       String?
+  bio                         String?
+  languages                   String[] // Spoken languages
+  games                       String[] // Games they offer services for
+  hourlyRate                  Float?
   emailVerified               DateTime?
   emailVerifiedAt             DateTime?
   emailVerifiedToken          String?
@@ -28,6 +32,7 @@ model User {
   reviewsReceived   Review[]           @relation("ReceivedReviews")
   payments          Payment[]
   availabilitySlots AvailabilitySlot[]
+  Listing           Listing[]
 }
 
 model Account {
@@ -57,6 +62,22 @@ model Session {
   expires      DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Listing {
+  id            String   @id @default(cuid())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game          String
+  title         String
+  description   String
+  pricePerHour  Float
+  availability  String? // Optional — can store as a string or JSON if needed
+  images        String[] // Array of image URLs
+  voiceIntroUrl String? // Optional voice intro
+  tags          String[] // Like "Chill", "Tryhard", etc.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Profile {
