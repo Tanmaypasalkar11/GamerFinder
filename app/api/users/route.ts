@@ -38,7 +38,7 @@ import { NextResponse } from "next/server";
 
 export async function PUT(req:Request){
   try{
-    const session=await validateSession();
+    const session = await validateSession();
     const email=session.user?.email;
 
     if(!email){
@@ -66,7 +66,7 @@ export async function PUT(req:Request){
 
 export async function DELETE(req:Request){
   try{
-    const session=await validateSession();
+    const session = await validateSession();   
     const email=session.user?.email;
 
     if(!email){
