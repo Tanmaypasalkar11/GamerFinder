@@ -38,9 +38,10 @@ export const authOptions = {
   ],
   callbacks: {
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (session.user && token.sub) {
+      if (session.user && token?.sub) { //abey idhar BT tha undefined aa raha tha isko optional karna tha bas hogaya ab sort
         session.user.id = token.sub;
       }
+      console.log("Session callback:", session);
       return session;
     },
   }  

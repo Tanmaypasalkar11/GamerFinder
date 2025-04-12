@@ -2,13 +2,15 @@ import { validateSession } from "@/app/lib/authentication";
 import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// Helper to get the ID from the URL
+function getListingId(req: NextRequest): string {
+  return req.nextUrl.pathname.split("/").pop() || "";
+}
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// ✅ GET /api/listings/[id]
+export async function GET(req: NextRequest) {
   try {
-    const { id } = params;
+    const id = getListingId(req);
 
     const listing = await prisma.listing.findUnique({
       where: { id },
@@ -30,14 +32,11 @@ export async function GET(
   }
 }
 
-
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// ✅ PUT /api/listings/[id]
+export async function PUT(req: NextRequest) {
   try {
     const session = await validateSession();
-    const listingId = params.id;
+    const listingId = getListingId(req);
     const data = await req.json();
 
     const userId = Number(session.user?.id);
@@ -68,12 +67,9 @@ export async function PUT(
 }
 
 // ✅ DELETE /api/listings/[id]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest) {
   try {
-    const listingId = decodeURIComponent(params.id).trim();
+    const listingId = decodeURIComponent(getListingId(req)).trim();
     const session = await validateSession();
     const sessionUserId = Number(session.user?.id);
 
