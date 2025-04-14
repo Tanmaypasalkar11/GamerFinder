@@ -1,35 +1,28 @@
-# Install dependencies only when needed
-FROM node:18-alpine AS deps
+# Development stage
+FROM node:18-alpine AS dev
 WORKDIR /app
-
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-# Rebuild the source code only when needed
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+RUN npm install
 COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build Next.js app
-RUN npm run build
-
-# Production image
-FROM node:18-alpine AS runner
+# Production stage
+FROM node:18-alpine AS prod
 WORKDIR /app
-
-ENV NODE_ENV=production
-
-# Copy only necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-
+COPY package*.json ./
+RUN npm install --only=production
+COPY . .
+RUN npm run build
 EXPOSE 3000
 CMD ["npm", "start"]
+
+
+
+
+# navigate kar jaha file hai aur agar devlopment mode me run karna hai toh ye kar "docker build --target dev -t gamerfinder-dev . " aut agar prod ke liye run karna hai toh ye "docker build --target prod -t gamerfinder-prod ." isse docker image build ho jayega fir container run karna next step pe
+
+#dev ke liye ye cmd "docker run -p 3000:3000 -v ${PWD}:/app -v /app/node_modules gamerfinder-dev" aur prod ke liye ye "docker run -p 3000:3000 gamerfinder-prod"
+
+#uske baad you're good to go to localhost:3000
+# ye sab karne ke baad agar koi changes hota hai toh sirf "docker-compose up" karna hai aur sab kuch ho jayega
