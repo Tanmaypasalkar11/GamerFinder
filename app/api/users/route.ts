@@ -36,6 +36,19 @@ import { NextResponse } from "next/server";
 //   }
 // }
 
+interface UserData {
+  id?: string;
+  name?: string;
+  bio?: string;
+  image?: string;
+  email?: string;
+  languages?: string[];
+  games?: string[];
+  hourlyRate?: number;
+  isOnline?: boolean;
+  createdAt?: Date;
+}
+
 export async function PUT(req:Request){
   try{
     const session = await validateSession();
@@ -44,7 +57,9 @@ export async function PUT(req:Request){
     if(!email){
       return NextResponse.json({message:"Unauthorized"},{status:401})
     }
-    const data=await req.json();
+
+   //partial is used means fakta kay kay feild update kar
+    const data: Partial<UserData> = await req.json();
 
     const updatedUser = await prisma.user.update({
       where: { email },
@@ -59,12 +74,13 @@ export async function PUT(req:Request){
     });
     return NextResponse.json(updatedUser)
 
-  }catch(error){
-    return NextResponse.json({message:"Error updating user" }, { status: 400 });
-  }
+  }catch (error) {
+    console.error("PUT /api/users error:", error);
+    return NextResponse.json({ message: "Error updating user" }, { status: 400 });
+  }  
 }
 
-export async function DELETE(req:Request){
+export async function DELETE(){
   try{
     const session = await validateSession();   
     const email=session.user?.email;
@@ -86,48 +102,74 @@ export async function DELETE(req:Request){
       message: "User deleted successfully",
       deletedUser,
     });
-  } catch (error) {
-    console.error("DELETE /api/users/me error:", error);
+  }catch (error) {
+    console.error("DELETE /api/users error:", error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
-  }
+  }  
 }
 
 
 //done with filter method 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const search = searchParams.get("search") || "";
   const game = searchParams.get("game");
-  const language = searchParams.get("language");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
+  const tags = searchParams.getAll("tag");
+  const sortBy = searchParams.get("sortBy");
+  const order = searchParams.get("order") as "asc" | "desc";
+
+  const take = parseInt(searchParams.get("take") || "10"); // default 10
+  const skip = parseInt(searchParams.get("skip") || "0");  // default 0
 
   try {
-    const users = await prisma.user.findMany({
+    const listings = await prisma.listing.findMany({
       where: {
         AND: [
-          {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { bio: { contains: search, mode: "insensitive" } },
-            ],
-          },
-          game ? { games: { has: game } } : {},
-          language ? { languages: { has: language } } : {},
+          game ? { game } : {},
+          minPrice ? { pricePerHour: { gte: parseFloat(minPrice) } } : {},
+          maxPrice ? { pricePerHour: { lte: parseFloat(maxPrice) } } : {},
+          tags.length ? { tags: { hasSome: tags } } : {},
         ],
       },
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        bio: true,
-        languages: true,
-        games: true,
-        hourlyRate: true,
-        isOnline: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            isOnline: true,
+          },
+        },
+      },
+      orderBy: sortBy && order ? { [sortBy]: order } : undefined,
+      take,
+      skip,
+    });
+
+    const totalCount = await prisma.listing.count({
+      where: {
+        AND: [
+          game ? { game } : {},
+          minPrice ? { pricePerHour: { gte: parseFloat(minPrice) } } : {},
+          maxPrice ? { pricePerHour: { lte: parseFloat(maxPrice) } } : {},
+          tags.length ? { tags: { hasSome: tags } } : {},
+        ],
       },
     });
 
-    return NextResponse.json(users);
+    return NextResponse.json({
+      listings,
+      totalCount,
+      pageInfo: {
+        take,
+        skip,
+        hasMore: skip + take < totalCount,
+      },
+    });
   } catch (error) {
-    return NextResponse.json({ message: "Error fetching users" }, { status: 500 });
+    console.error("Error fetching listings:", error);
+    return NextResponse.json({ message: "Failed to fetch listings" }, { status: 500 });
   }
 }
+

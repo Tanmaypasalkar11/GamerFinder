@@ -1,13 +1,19 @@
-// app/api/listings/[id]/route.ts
 import { validateSession } from "@/app/lib/authentication";
 import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-// Params is now always async — must be awaited
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+// Helper to get the ID from the URL
+function getListingId(req: NextRequest): string {
+  return req.nextUrl.pathname.split("/").pop() || "";
+}
+
+// ✅ GET /api/listings/[id]
+export async function GET(req: NextRequest) {
   try {
+    const id = getListingId(req);
+
     const listing = await prisma.listing.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: { id: true, name: true, image: true },
@@ -26,19 +32,33 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, context: { params: { id: string } }) {
+// ✅ PUT /api/listings/[id]
+export async function PUT(req: NextRequest) {
   try {
     const session = await validateSession();
-    const { id } = context.params;
+    const listingId = getListingId(req);
     const data = await req.json();
 
-    const existing = await prisma.listing.findUnique({ where: { id } });
+    const userId = Number(session.user?.id);
+    if (!userId || isNaN(userId)) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!existing || existing.userId !== session.user.id) {
+    const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+
+    if (!existing) {
+      return NextResponse.json({ message: "Listing not found" }, { status: 404 });
+    }
+
+    if (existing.userId !== userId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }
 
-    const updated = await prisma.listing.update({ where: { id }, data });
+    const updated = await prisma.listing.update({
+      where: { id: listingId },
+      data,
+    });
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("PUT error:", error);
@@ -46,27 +66,19 @@ export async function PUT(req: Request, context: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+// ✅ DELETE /api/listings/[id]
+export async function DELETE(req: NextRequest) {
   try {
-    const listingId = decodeURIComponent(params.id).trim();
-    // 🧼 Trim to remove any accidental newline/space
-    console.log("Listing ID:", listingId);
-
+    const listingId = decodeURIComponent(getListingId(req)).trim();
     const session = await validateSession();
-    const sessionUserId = parseInt(session.user?.id);
+    const sessionUserId = Number(session.user?.id);
+
     if (!sessionUserId || isNaN(sessionUserId)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Actually fetch from database
-    const listing = await prisma.listing.findUnique({
-      where: { id: listingId },
-    });
-    
-    const allListings = await prisma.listing.findMany();
-    console.log("All listings:", allListings);
-    
-    console.log("Fetched listing:", listing);
+    const listing = await prisma.listing.findUnique({ where: { id: listingId } });
+
     if (!listing) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
@@ -75,9 +87,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    await prisma.listing.delete({
-      where: { id: listingId },
-    });
+    await prisma.listing.delete({ where: { id: listingId } });
 
     return NextResponse.json({ message: "Listing deleted successfully" });
   } catch (error) {
@@ -85,5 +95,3 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
-

@@ -2,40 +2,30 @@ import { validateSession } from "@/app/lib/authentication";
 import { prisma } from "@/app/lib/prisma";
 import { NextResponse } from "next/server";
 
-//non filter method
-// export async function GET(req:Request){
-//   try{
-//     const listing=await prisma.listing.findMany({
-//       include:{
-//         user:{
-//           select:{
-//             id:true,
-//             name:true,
-//             image:true,
-//           }
-//         }
-//       }
-//     });
-//     return NextResponse.json(listing)
-//   }catch(error){
-//     console.error("GET /api/listings error:", error);
-//     return NextResponse.json({ message: "Server error" }, { status: 500 });
-//   }
-// }
+interface ListingInput {
+  game: string;
+  title: string;
+  description: string;
+  pricePerHour: number;
+  availability: string;
+  images?: string[];
+  voiceIntroUrl?: string | null;
+  tags?: string[];
+}
 
 export async function POST(req: Request) {
   try {
-    const session =await validateSession();
+    const session = await validateSession();
     if (!session.user?.email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const userId = parseInt(session.user?.id); // Ensure it's an integer
+
+    const userId = parseInt(session.user.id); // session.user.id should be typed as string in your next-auth.d.ts
 
     if (!userId || isNaN(userId)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure user exists in DB
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -47,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const data = await req.json();
+    const data: ListingInput = await req.json();
 
     const listing = await prisma.listing.create({
       data: {
@@ -64,22 +54,23 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(listing, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("POST /api/listings error:", error);
     return NextResponse.json(
-      { message: "Server error", error: error.message },
+      { message: "Server error" },
       { status: 500 }
     );
   }
 }
 
-  // this is filter method
-  export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
   const game = searchParams.get("game");
   const minPrice = searchParams.get("minPrice");
   const maxPrice = searchParams.get("maxPrice");
-  const tags = searchParams.getAll("tag"); // support multiple ?tag=Chill&tag=Tryhard
+  const tags = searchParams.getAll("tag");
+  const sortBy = searchParams.get("sortBy"); // e.g., "pricePerHour"
+  const order = searchParams.get("order") as "asc" | "desc"; // e.g., "desc"
 
   try {
     const listings = await prisma.listing.findMany({
@@ -101,6 +92,7 @@ export async function POST(req: Request) {
           },
         },
       },
+      orderBy: sortBy && order ? { [sortBy]: order } : undefined,
     });
 
     return NextResponse.json(listings);
