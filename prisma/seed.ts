@@ -1,29 +1,44 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
 
-const prisma = new PrismaClient();
+
+const prisma = new PrismaClient()
 
 async function main() {
-  // Creating a dummy user with plaintext password
   const user = await prisma.user.upsert({
     where: { email: 'testuser@example.com' },
     update: {},
     create: {
-      name: 'Test User',
       email: 'testuser@example.com',
-      password: 'password123', // Plaintext password
-      image: 'https://i.pravatar.cc/150?img=3',
-      isOnline: true,
+      name: 'Test User',
     },
-  });
+  })
 
-  console.log('Dummy user created:', user);
+  const game = await prisma.game.upsert({
+    where: { name: 'Valorant' },
+    update: {},
+    create: {
+      name: 'Valorant',
+    },
+  })
+
+  await prisma.listing.create({
+    data: {
+      title: 'Looking for a Valorant duo',
+      description: 'Need a reliable ranked partner.',
+      pricePerHour: 12.5,
+      userId: user.id,
+      game:"Valorant",
+    },
+  })
+
+  console.log('🌱 Seed completed!')
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
+  .catch(e => {
+    console.error(e)
+    process.exit(1)
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect())
