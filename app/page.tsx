@@ -1,23 +1,30 @@
-import Navbar from "./(auth)/components/layouts/Navbar";
+'use client'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
+  const router = useRouter()
+
   return (
-    <div className="bg-white min-h-screen flex flex-col items-center justify-center px-4">
-      <Navbar />
-      <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 text-center">
-        Welcome to <span className="text-blue-600">Bullaburg</span>
+    <main className="min-h-screen bg-gradient-to-br from-indigo-100 to-white flex flex-col items-center justify-center p-8">
+      <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-10 text-center">
+        Welcome to Game Saviour
       </h1>
-      <p className="mt-6 text-lg md:text-xl text-gray-600 text-center max-w-2xl">
-        The ultimate destination for everything bovine. From memes to merch, we’ve got the bull and the burg.
-      </p>
-      <div className="mt-8 flex flex-col sm:flex-row gap-4">
-        <button className="px-8 py-4 bg-blue-600 text-white text-lg font-medium rounded-full hover:bg-blue-700 transition">
+
+      <div className="flex flex-col md:flex-row gap-6">
+        <button
+          onClick={() => router.push('/listings')}
+          className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-lg transition"
+        >
           Find Player
         </button>
-        <button className="px-8 py-4 bg-gray-900 text-white text-lg font-medium rounded-full hover:bg-gray-800 transition">
-          {`Be Someone's Rank Saver`}
+
+        <button
+          onClick={() => router.push('/create-listing')}
+          className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl text-lg transition"
+        >
+          Be Saviour
         </button>
       </div>
-    </div>
-  );
+    </main>
+  )
 }
