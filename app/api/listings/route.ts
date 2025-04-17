@@ -20,25 +20,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = parseInt(session.user.id); // session.user.id should be typed as string in your next-auth.d.ts
-
+    const userId = parseInt(session.user.id);
     if (!userId || isNaN(userId)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
+    // Check if request has a body
+    if (!req.body) {
       return NextResponse.json(
-        { message: "User not found. Please log in again." },
-        { status: 404 }
+        { message: "Request body is required" },
+        { status: 400 }
       );
     }
 
-    const data: ListingInput = await req.json();
+    let data: ListingInput;
+    try {
+      data = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { message: "Invalid JSON format in request body" },
+        { status: 400 }
+      );
+    }
 
+    // Validate required fields
+    if (!data.game || !data.title || !data.description || !data.pricePerHour || !data.availability) {
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Rest of your code...
     const listing = await prisma.listing.create({
       data: {
         userId,
