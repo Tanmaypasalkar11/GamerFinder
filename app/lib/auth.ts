@@ -53,6 +53,7 @@ export const authOptions = {
 
       if (session.user && token?.sub) { //abey idhar BT tha undefined aa raha tha isko optional karna tha bas hogaya ab sort
         session.user.id = token.sub;
+        console.log("token", token)
       }
      
       return session;
