@@ -39,39 +39,48 @@ export default function CreateListingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check if user is authenticated
     if (status !== "authenticated" || !session) {
       setMessage("You must be logged in to create a listing");
       return;
     }
-  
+
     setLoading(true);
     setMessage("");
-  
+
     try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null) formData.append(key, value as any);
-      });
-  
-      // Add the user ID to the form data
-      formData.append("userId", session.user.id);
-  
+      // Convert form data to JSON format
+      const listingData = {
+        title: form.title,
+        description: form.description,
+        pricePerHour: parseFloat(form.pricePerHour),
+        game: form.game,
+        availability: form.availability,
+        tags: form.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        // image: form.image, // needss seperate handling prisma me nahi leta img
+        userId: session.user.id,
+      };
+
       const res = await fetch("/api/listings", {
         method: "POST",
-        body: formData,
-        credentials: "include", // This ensures cookies are sent
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(listingData),
       });
-  
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Failed to create listing");
       }
-  
+
       const data = await res.json();
       setMessage("Listing created successfully!");
-      router.push(`/listings/${data.id}`);
+      router.push(`/listings`);
     } catch (error) {
       console.error("Error creating listing:", error);
       setMessage(error instanceof Error ? error.message : "An error occurred");
