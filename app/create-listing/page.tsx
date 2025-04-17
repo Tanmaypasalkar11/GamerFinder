@@ -1,74 +1,96 @@
-'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react"; // Added session hook
 
 export default function CreateListingPage() {
+  const { data: session, status } = useSession(); // Added session tracking
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    pricePerHour: '',
-    game: '',
-    availability: '',
-    tags: '',
+    title: "",
+    description: "",
+    pricePerHour: "",
+    game: "",
+    availability: "",
+    tags: "",
     image: null as File | null,
-  })
+  });
 
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const router = useRouter()
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const router = useRouter();
+
+  // Debug session status
+  console.log("Session status:", status);
+  console.log("Session data:", session);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      setForm((prev) => ({ ...prev, image: file }))
+      setForm((prev) => ({ ...prev, image: file }));
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
-    try {
-      const formData = new FormData()
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null) formData.append(key, value as any)
-      })
-
-      const res = await fetch('/api/listings', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (res.ok) {
-        setMessage('🎉 Listing created successfully!')
-        setTimeout(() => router.push('/listings'), 1500)
-      } else {
-        const error = await res.json()
-        throw new Error(error.message || 'Something went wrong!')
-      }
-    } catch (error: any) {
-      setMessage(`❌ Error: ${error.message}`)
-    } finally {
-      setLoading(false)
+    e.preventDefault();
+    
+    // Check if user is authenticated
+    if (status !== "authenticated" || !session) {
+      setMessage("You must be logged in to create a listing");
+      return;
     }
-  }
+  
+    setLoading(true);
+    setMessage("");
+  
+    try {
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== null) formData.append(key, value as any);
+      });
+  
+      // Add the user ID to the form data
+      formData.append("userId", session.user.id);
+  
+      const res = await fetch("/api/listings", {
+        method: "POST",
+        body: formData,
+        credentials: "include", // This ensures cookies are sent
+      });
+  
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to create listing");
+      }
+  
+      const data = await res.json();
+      setMessage("Listing created successfully!");
+      router.push(`/listings/${data.id}`);
+    } catch (error) {
+      console.error("Error creating listing:", error);
+      setMessage(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-8">
       <div className="max-w-2xl mx-auto bg-white shadow-lg rounded-2xl p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Create a Listing</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">
+          Create a Listing
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-5">
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Title
+            </label>
             <input
               name="title"
               value={form.title}
@@ -80,7 +102,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
             <textarea
               name="description"
               value={form.description}
@@ -92,7 +116,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Game</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Game
+            </label>
             <input
               name="game"
               value={form.game}
@@ -104,7 +130,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Availability
+            </label>
             <input
               name="availability"
               value={form.availability}
@@ -116,7 +144,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Price per Hour ($)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Price per Hour ($)
+            </label>
             <input
               name="pricePerHour"
               type="number"
@@ -129,7 +159,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (comma separated)
+            </label>
             <input
               name="tags"
               value={form.tags}
@@ -140,7 +172,9 @@ export default function CreateListingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Upload Image
+            </label>
             <input
               type="file"
               accept="image/*"
@@ -148,7 +182,9 @@ export default function CreateListingPage() {
               className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200"
             />
             {form.image && (
-              <p className="text-green-600 mt-1 text-sm">Selected: {form.image.name}</p>
+              <p className="text-green-600 mt-1 text-sm">
+                Selected: {form.image.name}
+              </p>
             )}
           </div>
 
@@ -157,14 +193,16 @@ export default function CreateListingPage() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
           >
-            {loading ? 'Submitting...' : 'Submit Listing'}
+            {loading ? "Submitting..." : "Submit Listing"}
           </button>
         </form>
 
         {message && (
-          <p className="mt-4 text-center text-sm font-medium text-gray-700">{message}</p>
+          <p className="mt-4 text-center text-sm font-medium text-gray-700">
+            {message}
+          </p>
         )}
       </div>
     </main>
-  )
+  );
 }
