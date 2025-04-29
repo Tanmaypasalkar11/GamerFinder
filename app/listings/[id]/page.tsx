@@ -23,14 +23,20 @@ export default async function ListingDetailPage({
 }: {
   params: { id: string };
 }) {
-  const res = await fetch(`http://localhost:3000/api/listings/${params.id}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/listings/${params.id}`,
+    {
+      cache: "no-store",
+    }
+  );
 
   if (!res.ok) return notFound();
 
   const listing: Listing = await res.json();
-  const images = listing.images.length > 0 ? listing.images : ["https://source.unsplash.com/random/500x300"];
+  const images =
+    listing.images.length > 0
+      ? listing.images
+      : ["https://source.unsplash.com/random/500x300"];
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10">
@@ -50,7 +56,8 @@ export default async function ListingDetailPage({
 
         {/* Display Price per Hour */}
         <p className="text-xl font-semibold text-gray-800 mt-4">
-          <span className="text-gray-600">Price:</span> ${listing.pricePerHour} per hour
+          <span className="text-gray-600">Price:</span> ${listing.pricePerHour}{" "}
+          per hour
         </p>
 
         {/* Display Availability */}
@@ -93,9 +100,15 @@ export default async function ListingDetailPage({
         {/* Display Player Details */}
         {listing.playerDetails && (
           <div className="bg-gray-100 p-6 rounded-lg shadow-sm mt-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Player Details</h2>
-            <p><strong>Age:</strong> {listing.playerDetails.age}</p>
-            <p><strong>Position:</strong> {listing.playerDetails.position}</p>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Player Details
+            </h2>
+            <p>
+              <strong>Age:</strong> {listing.playerDetails.age}
+            </p>
+            <p>
+              <strong>Position:</strong> {listing.playerDetails.position}
+            </p>
           </div>
         )}
 
@@ -105,7 +118,10 @@ export default async function ListingDetailPage({
             <h2 className="text-xl font-semibold mb-4">Images</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {images.map((img, index) => (
-                <div key={index} className="overflow-hidden rounded-lg shadow-lg">
+                <div
+                  key={index}
+                  className="overflow-hidden rounded-lg shadow-lg"
+                >
                   <img
                     src={img}
                     alt="Player"
