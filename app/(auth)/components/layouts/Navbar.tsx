@@ -117,9 +117,13 @@ export default function Layout() {
 
               {session ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-gray-700 font-medium">
-                    Hi, {session.user?.name?.split(" ")}
-                  </span>
+                  <Link
+                  href="/my-listings"
+                  className="text-gray-700 font-medium hover:underline transition"
+                  >
+                 Hi, {session.user?.name?.split(" ")[0]}
+                </Link>
+
                   <button
                     onClick={() => signOut()}
                     className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-full shadow-md hover:bg-red-600 transition duration-200 cursor-pointer"
